@@ -24,31 +24,58 @@ public class CustomerService {
 
     public CustomerResponse create(CustomerRequest request) {
         Customer customer = customerMapper.toModel(request);
-        checkForDuplication(customer);
+        checkForEmailDuplication(customer.getEmail());
+
         customers.put(customer.getId(), customer);
         return customerMapper.toResponse(customer);
     }
 
-    public CustomerResponse getByEmail(String email) {
+    public List<CustomerResponse> getCustomers(
+            String email
+    ) {
         return customers.values().stream()
-                .filter(customer -> customer.getEmail().equalsIgnoreCase(email))
-                .findFirst()
-                .map(customerMapper::toResponse)
-                .orElseThrow(() -> new NotFoundException("Customer with email " + email + " not found"));
-    }
-
-    public List<CustomerResponse> getAll() {
-        return customers.values().stream()
+                .filter(customer -> email == null || customer.getEmail().contains(email))
                 .map(customerMapper::toResponse)
                 .toList();
     }
 
-    private void checkForDuplication(Customer customer) {
+    public CustomerResponse getById(UUID id) {
+        Customer customer = findOrThrow(id);
+        return customerMapper.toResponse(customer);
+    }
+
+    public CustomerResponse update(UUID id, CustomerRequest request) {
+        Customer existingCustomer = findOrThrow(id);
+
+        checkForEmailDuplication(request.email());
+
+        existingCustomer.setName(request.name());
+        existingCustomer.setEmail(request.email());
+        existingCustomer.setAddress(request.address());
+        existingCustomer.setAge(request.age());
+
+        return customerMapper.toResponse(existingCustomer);
+    }
+
+    public void delete(UUID id) {
+        findOrThrow(id);
+        customers.remove(id);
+    }
+
+    private Customer findOrThrow(UUID id) {
+        Customer customer = customers.get(id);
+        if (customer == null) {
+            throw new NotFoundException("Customer with id " + id + " not found");
+        }
+        return customer;
+    }
+
+    private void checkForEmailDuplication(String email) {
         boolean emailExists = customers.values().stream()
-                .anyMatch(existingCustomer -> existingCustomer.getEmail().equalsIgnoreCase(customer.getEmail()));
+                .anyMatch(existingCustomer -> existingCustomer.getEmail().equalsIgnoreCase(email));
 
         if (emailExists) {
-            throw new IllegalArgumentException("Customer with email " + customer.getEmail() + " already exists");
+            throw new IllegalArgumentException("Customer with email " + email + " already exists");
         }
     }
 }

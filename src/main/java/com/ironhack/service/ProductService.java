@@ -28,10 +28,7 @@ public class ProductService {
     }
 
     public ProductResponse getById(UUID id) {
-        Product product = products.get(id);
-        if (product == null) {
-            throw new NotFoundException("Product not found with id: " + id);
-        }
+        Product product = findOrThrow(id);
         return productMapper.toResponse(product);
     }
 
@@ -41,45 +38,56 @@ public class ProductService {
             BigDecimal startPrice,
             BigDecimal endPrice
     ) {
-        if (name != null) {
-            return getByName(name);
-        } else if (category != null) {
-            return getByCategory(category);
-        } else if (startPrice != null && endPrice != null) {
-            return getByPriceRange(startPrice, endPrice);
-        } else {
-            return products.values().stream()
-                    .map(productMapper::toResponse)
-                    .toList();
+        return products.values().stream()
+                .filter(product -> name == null || product.getName().contains(name))
+                .filter(product -> category == null || product.getCategory() == category)
+                .filter(product -> matchesPriceRange(product, startPrice, endPrice))
+                .map(productMapper::toResponse)
+                .toList();
+    }
+
+    public ProductResponse update(UUID id, ProductRequest request) {
+        Product existingProduct = findOrThrow(id);
+
+        existingProduct.setName(request.name());
+        existingProduct.setPrice(request.price());
+        existingProduct.setCategory(request.category());
+        existingProduct.setQuantity(request.quantity());
+
+        return productMapper.toResponse(existingProduct);
+    }
+
+    public void delete(UUID id) {
+        findOrThrow(id);
+        products.remove(id);
+    }
+
+    private Product findOrThrow(UUID id) {
+        Product product = products.get(id);
+        if (product == null) {
+            throw new NotFoundException("Product not found with id: " + id);
         }
-    }
-
-    private List<ProductResponse> getByCategory(ProductCategory category) {
-        return products.values().stream()
-                .filter(product -> product.getCategory() == category)
-                .map(productMapper::toResponse)
-                .toList();
-    }
-
-    private List<ProductResponse> getByPriceRange(BigDecimal startPrice, BigDecimal endPrice) {
-        validatePriceRange(startPrice, endPrice);
-        return products.values().stream()
-                .filter(product -> product.getPrice().compareTo(startPrice) >= 0
-                        && product.getPrice().compareTo(endPrice) <= 0)
-                .map(productMapper::toResponse)
-                .toList();
-    }
-
-    private List<ProductResponse> getByName(String name) {
-        return products.values().stream()
-                .filter(product -> product.getName().contains(name))
-                .map(productMapper::toResponse)
-                .toList();
+        return product;
     }
 
     private void validatePriceRange(BigDecimal startPrice, BigDecimal endPrice) {
         if (startPrice.compareTo(endPrice) > 0) {
             throw new IllegalArgumentException("Start price must be less than or equal to end price.");
         }
+    }
+
+    private boolean matchesPriceRange(Product product, BigDecimal startPrice, BigDecimal endPrice) {
+        if (startPrice != null && endPrice != null) {
+            validatePriceRange(startPrice, endPrice);
+            return product.getPrice().compareTo(startPrice) >= 0 &&
+                    product.getPrice().compareTo(endPrice) <= 0;
+        }
+        if (startPrice != null) {
+            return product.getPrice().compareTo(startPrice) >= 0;
+        }
+        if (endPrice != null) {
+            return product.getPrice().compareTo(endPrice) <= 0;
+        }
+        return true;
     }
 }

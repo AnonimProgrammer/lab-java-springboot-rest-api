@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/v1/customers")
@@ -26,15 +27,33 @@ public class CustomerController {
         return ResponseEntity.status(HttpStatus.CREATED).body(customerService.create(request));
     }
 
-    @GetMapping
-    public ResponseEntity<List<CustomerResponse>> getCustomers() {
-        return ResponseEntity.ok(customerService.getAll());
+    @GetMapping("/{id}")
+    public ResponseEntity<CustomerResponse> getCustomerById(
+            @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok(customerService.getById(id));
     }
 
-    @GetMapping(params = "email")
-    public ResponseEntity<CustomerResponse> getCustomerByEmail(
-            @RequestParam String email
+    @GetMapping
+    public ResponseEntity<List<CustomerResponse>> getCustomers(
+            @RequestParam(required = false) String email
     ) {
-        return ResponseEntity.ok(customerService.getByEmail(email));
+        return ResponseEntity.ok(customerService.getCustomers(email));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CustomerResponse> updateCustomer(
+            @PathVariable UUID id,
+            @Valid @RequestBody CustomerRequest request
+    ) {
+        return ResponseEntity.ok(customerService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCustomer(
+            @PathVariable UUID id
+    ) {
+        customerService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

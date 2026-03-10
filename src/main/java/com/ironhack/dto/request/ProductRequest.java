@@ -13,12 +13,14 @@ public record ProductRequest(
         @Size(min = 3, message = "Name must consists of at least 3 characters")
         String name,
 
+        @NotNull
         @Positive(message = "Price must be a positive value")
         BigDecimal price,
 
         @NotNull(message = "Category is required")
         ProductCategory category,
 
+        @NotNull
         @Positive(message = "Quantity must be a positive value")
         Integer quantity
 ) {}

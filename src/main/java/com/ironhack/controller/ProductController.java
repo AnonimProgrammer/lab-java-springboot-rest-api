@@ -47,4 +47,21 @@ public class ProductController {
         List<ProductResponse> products = productService.getProducts(name, category, startPrice, endPrice);
         return ResponseEntity.ok(products);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductResponse> updateProduct(
+            @PathVariable UUID id,
+            @Valid @RequestBody ProductRequest request
+    ) {
+        ProductResponse updatedProduct = productService.update(id, request);
+        return ResponseEntity.ok(updatedProduct);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProduct(
+            @PathVariable UUID id
+    ) {
+        productService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }
